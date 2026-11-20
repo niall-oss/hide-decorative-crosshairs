@@ -3,13 +3,18 @@ from debug_utils import LOG_NOTE
 from gui.hidedecorativecrosshairs import config
 
 MOD_LINKAGE = "hide_decorative_crosshairs"
-SETTINGS_VERSION = 1
+SETTINGS_VERSION = 2
 
 HINT_TOOLTIP = (
     "{HEADER}Decorative crosshairs{/HEADER}"
     "{BODY}Some vehicle mechanics draw an extra overlay around your reticle. "
     "Ticked overlays are not shown. The mechanic itself, including any "
     "accuracy bonus, is unchanged. Changes apply from your next battle.{/BODY}"
+)
+
+CHECKBOX_TOOLTIP = (
+    "{HEADER}%s{/HEADER}{BODY}%s Hiding it does not change how the "
+    "mechanic works.{/BODY}"
 )
 
 _api = None
@@ -29,10 +34,13 @@ def _build_template():
     column1 = [
         templates.createLabel("Hide these reticle overlays:", tooltip=HINT_TOOLTIP),
     ]
-    for name, label in config.KNOWN_COMPONENTS:
+    for name, label, description in config.KNOWN_COMPONENTS:
         column1.append(
             templates.createCheckbox(
-                label, name, config.is_hidden(name), tooltip=HINT_TOOLTIP
+                label,
+                name,
+                config.is_hidden(name),
+                tooltip=CHECKBOX_TOOLTIP % (label, description),
             )
         )
 
@@ -46,10 +54,10 @@ def _build_template():
 
 
 def _apply_settings(settings):
-    known = set(name for name, _ in config.KNOWN_COMPONENTS)
+    known = set(component[0] for component in config.KNOWN_COMPONENTS)
     # Names added by hand to config.json have no checkbox; keep them.
     hidden = [name for name in config.hidden_components() if name not in known]
-    for name, _ in config.KNOWN_COMPONENTS:
+    for name, _, _ in config.KNOWN_COMPONENTS:
         if settings.get(name, config.is_hidden(name)):
             hidden.append(name)
 

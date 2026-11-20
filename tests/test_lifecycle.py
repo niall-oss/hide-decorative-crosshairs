@@ -36,10 +36,29 @@ def _apply(game, **fields):
     game.api.apply(_linkage(game), settings)
 
 
-def test_default_config_hides_accuracy_only(game):
+def test_first_start_hides_nothing(game):
+    (CONFIG_DIR / "config.json").unlink()
+
     game.entry.init()
 
-    assert _battle(game, ACCURACY_STACKS) == []
+    assert _battle(game, *ALL_MECHANICS) == [
+        "accuracy",
+        "fury",
+        "concentration",
+        "temperatureGunOverheat",
+        "overheat",
+        "pillboxSiege",
+    ]
+    assert read_config() == {"enabled": True, "hidden": []}
+    template = game.api.state["templates"][_linkage(game)]
+    assert [c["value"] for c in template["column1"] if c["type"] == "CheckBox"] == [
+        False
+    ] * len(ALL_MECHANICS)
+
+
+def test_hiding_accuracy_leaves_other_overlays(game):
+    game.entry.init()
+
     assert _battle(game, *ALL_MECHANICS) == [
         "fury",
         "concentration",
@@ -47,7 +66,15 @@ def test_default_config_hides_accuracy_only(game):
         "overheat",
         "pillboxSiege",
     ]
-    assert read_config() == {"enabled": True, "hidden": ["accuracy"]}
+
+
+def test_each_checkbox_has_its_own_tooltip(game):
+    game.entry.init()
+
+    template = game.api.state["templates"][_linkage(game)]
+    tooltips = [c["tooltip"] for c in template["column1"] if c["type"] == "CheckBox"]
+    assert len(set(tooltips)) == len(ALL_MECHANICS)
+    assert "Leopard 120 Verbessert" in tooltips[0]
 
 
 def test_config_hides_every_listed_component(game):
@@ -79,21 +106,19 @@ def test_empty_hidden_list_shows_everything(game):
 
 
 def test_unreadable_config_falls_back_to_defaults(game):
-    CONFIG_DIR.mkdir(parents=True)
     (CONFIG_DIR / "config.json").write_text("not json")
 
     game.entry.init()
 
-    assert _battle(game, ACCURACY_STACKS, BATTLE_FURY) == ["fury"]
+    assert _battle(game, ACCURACY_STACKS, BATTLE_FURY) == ["accuracy", "fury"]
 
 
 def test_non_list_hidden_falls_back_to_defaults(game):
-    CONFIG_DIR.mkdir(parents=True)
     (CONFIG_DIR / "config.json").write_text('{"hidden": "fury"}')
 
     game.entry.init()
 
-    assert _battle(game, ACCURACY_STACKS, BATTLE_FURY) == ["fury"]
+    assert _battle(game, ACCURACY_STACKS, BATTLE_FURY) == ["accuracy", "fury"]
 
 
 def test_gameface_mechanic_is_untouched(game):

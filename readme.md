@@ -4,14 +4,16 @@ A World of Tanks PC mod that hides the decorative overlays some vehicle mechanic
 
 ## Overlays
 
-| Overlay | Mechanic | Hidden by default |
+Nothing is hidden until you tick it. Example vehicles are from the 2.4.1.1 EU client.
+
+| Overlay | Mechanic | Example vehicles |
 |---|---|---|
-| `accuracy` | Accuracy Stacks (e.g. Leopard 120 Verbessert) | Yes |
-| `fury` | Battle Fury | No |
-| `concentration` | Concentration Mode | No |
-| `temperatureGunOverheat` | Gun Overheat | No |
-| `overheat` | Overheat Stacks | No |
-| `pillboxSiege` | Pillbox Siege Mode | No |
+| `accuracy` | Accuracy Stacks | Leopard 120 Verbessert |
+| `fury` | Battle Fury | T803 |
+| `concentration` | Concentration Mode | XM69 Hacker |
+| `temperatureGunOverheat` | Gun Overheat | None yet |
+| `overheat` | Overheat Stacks | Hirschkäfer |
+| `pillboxSiege` | Pillbox Siege Mode | Strv 107-12 |
 
 Mechanics whose HUD is drawn by Gameface are not affected.
 
@@ -32,6 +34,8 @@ Without it, edit `World_of_Tanks/mods/<game_version>/configs/ANIALLATOR.hide_dec
   "hidden": ["accuracy"]
 }
 ```
+
+The default is `"hidden": []`.
 
 `hidden` takes any overlay name from the table above, or a newer one added in a later patch.
 

@@ -76,6 +76,8 @@ def _make_game(monkeypatch, tmp_path, api):
         notes=[],
     )
     _install_game_modules(monkeypatch, game)
+    # Most tests start from a player who has ticked Accuracy Stacks.
+    write_config(hidden=["accuracy"])
     game.entry, game.mods_settings = _import_mod_fresh()
     return game
 

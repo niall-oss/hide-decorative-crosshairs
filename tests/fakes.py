@@ -148,7 +148,13 @@ def _create_label(text, tooltip=None):
 
 
 def _create_checkbox(text, varName, value, tooltip=None):
-    return {"type": "CheckBox", "text": text, "varName": varName, "value": value}
+    return {
+        "type": "CheckBox",
+        "text": text,
+        "varName": varName,
+        "value": value,
+        "tooltip": tooltip,
+    }
 
 
 def make_templates_module():

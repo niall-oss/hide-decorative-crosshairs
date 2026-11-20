@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import json
 import os
 
@@ -9,19 +10,46 @@ except NameError:
 CONFIG_DIR = "mods/configs/ANIALLATOR.hide_decorative_crosshairs"
 CONFIG_FILE = CONFIG_DIR + "/config.json"
 
-# Values of DECORATIVE_CROSSHAIR_CONSTS, keyed to the mechanic that adds them.
+# Values of DECORATIVE_CROSSHAIR_CONSTS, with the vehicles that use each one
+# in the 2.4.1.1 EU client.
 KNOWN_COMPONENTS = (
-    ("accuracy", "Accuracy Stacks"),
-    ("fury", "Battle Fury"),
-    ("concentration", "Concentration Mode"),
-    ("temperatureGunOverheat", "Gun Overheat"),
-    ("overheat", "Overheat Stacks"),
-    ("pillboxSiege", "Pillbox Siege Mode"),
+    (
+        "accuracy",
+        "Accuracy Stacks",
+        "The ring of accuracy stacks around the reticle, "
+        "e.g. Leopard 120 Verbessert.",
+    ),
+    (
+        "fury",
+        "Battle Fury",
+        "The Battle Fury meter around the reticle, e.g. T803.",
+    ),
+    (
+        "concentration",
+        "Concentration Mode",
+        "The Concentration Mode gauge around the reticle, e.g. XM69 Hacker.",
+    ),
+    (
+        "temperatureGunOverheat",
+        "Gun Overheat",
+        "The gun overheat gauge around the reticle. No vehicle in the "
+        "current client uses it yet.",
+    ),
+    (
+        "overheat",
+        "Overheat Stacks",
+        "The overheat stacks gauge around the reticle, e.g. Hirschkäfer.",
+    ),
+    (
+        "pillboxSiege",
+        "Pillbox Siege Mode",
+        "The siege mode indicator around the reticle, e.g. Strv 107-12.",
+    ),
 )
 
 DEFAULTS = {
     "enabled": True,
-    "hidden": ["accuracy"],
+    "hidden": [],
 }
 
 _enabled = DEFAULTS["enabled"]
