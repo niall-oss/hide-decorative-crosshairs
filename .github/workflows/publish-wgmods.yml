@@ -1,0 +1,84 @@
+name: Publish to wgmods
+
+on:
+  workflow_dispatch:
+    inputs:
+      changes:
+        description: Version changes shown on wgmods
+        required: true
+        type: string
+      game_version:
+        description: Game version, e.g. 2.4.1.1 (blank = latest on wgmods)
+        required: false
+        type: string
+      moderator_info:
+        description: Information for moderators
+        required: false
+        type: string
+        default: Source code available https://github.com/niall-oss/hide-decorative-crosshairs
+      dry_run:
+        description: Print the request without uploading
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wgmods-publish
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: python:2.7.18-buster
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: master
+
+      - name: Build wotmod
+        run: python build.py --username ANIALLATOR
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: wotmod
+          path: build/*.wotmod
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      WGMODS_SESSIONID: ${{ secrets.WGMODS_SESSIONID }}
+      WGMODS_CSRFTOKEN: ${{ secrets.WGMODS_CSRFTOKEN }}
+      CHANGES: ${{ inputs.changes }}
+      GAME_VERSION: ${{ inputs.game_version }}
+      MODERATOR_INFO: ${{ inputs.moderator_info }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: master
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: wotmod
+          path: build
+
+      - uses: astral-sh/setup-uv@v10.4.0
+        with:
+          enable-cache: true
+
+      - run: uv sync --locked
+
+      - name: Submit update to wgmods
+        run: |
+          mod_version=$(uv run scripts/wgmods.py mod-version | sed -n 's/^mod_version=//p')
+          uv run scripts/wgmods.py publish \
+            --wotmod "build/ANIALLATOR.Hide_Decorative_Crosshairs_${mod_version}.wotmod" \
+            ${GAME_VERSION:+--game-version "$GAME_VERSION"} \
+            --changes "$CHANGES" \
+            --comment "$MODERATOR_INFO" \
+            ${{ inputs.dry_run && '--dry-run' || '' }}

@@ -2,6 +2,8 @@
 
 A World of Tanks PC mod that hides the decorative overlays some vehicle mechanics draw around your own reticle. You can keep the normal reticle; the mechanic itself, including its accuracy bonus, is unchanged.
 
+[Wargaming Mod Portal](https://wgmods.net/8207/)
+
 ## Overlays
 
 | Overlay | Mechanic | Example vehicles |
@@ -64,6 +66,15 @@ Output: `build/ANIALLATOR.Hide_Decorative_Crosshairs_1.0.0.wotmod`
 ### CI / Releases
 
 GitHub Actions builds the mod on every pull request (artifact `wotmod-pr-{commit_sha}`) and publishes a `v{version}` GitHub Release on merges to `master`.
+
+### Publishing to wgmods.net
+
+The mod version lives in `build.py` (`--version` default). Release tooling in `scripts/wgmods.py` runs on the latest Python via [uv](https://docs.astral.sh/uv/) (`uv run scripts/wgmods.py --help`).
+
+- **Game patches (automatic)**: the **Game patch update** workflow runs daily at 13:00 UTC. When wgmods lists a game version newer than the mod's latest update, it creates a `v{mod}+wot{game}` GitHub Release and submits the same mod version for that game version. If the mod already has the maximum number of updates (6), the oldest update is deleted first.
+- **Code changes (manual)**: bump the version in `build.py`, then merge. Then run **Actions → Publish to wgmods** and enter the version changes text. Game version defaults to the latest; `dry_run` prints the request without uploading.
+
+Both workflows authenticate with the repo secrets `WGMODS_SESSIONID` and `WGMODS_CSRFTOKEN`, which are your wgmods.net login cookies. Find them in DevTools → Application → Cookies → `https://wgmods.net`. If they stop working, the daily run opens a "wgmods session cookie expired" issue telling you to paste fresh ones.
 
 ### Decompiled reference
 
