@@ -1,0 +1,118 @@
+name: Game patch update
+
+on:
+  schedule:
+    - cron: "0 13 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: wgmods-publish
+  cancel-in-progress: false
+
+env:
+  WGMODS_SESSIONID: ${{ secrets.WGMODS_SESSIONID }}
+  WGMODS_CSRFTOKEN: ${{ secrets.WGMODS_CSRFTOKEN }}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      new: ${{ steps.check.outputs.new }}
+      game_version: ${{ steps.check.outputs.game_version }}
+      mod_version: ${{ steps.check.outputs.mod_version }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v10.4.0
+        with:
+          enable-cache: true
+
+      - run: uv sync --locked
+
+      # Runs daily even without a new patch so the session stays in use and a dead cookie surfaces early.
+      - name: Verify wgmods session
+        id: auth
+        run: uv run scripts/wgmods.py auth-check
+
+      - name: Open issue for expired session
+        if: failure() && steps.auth.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TITLE: wgmods session cookie expired
+        run: |
+          body='The scheduled wgmods check could not authenticate, so game-patch updates are paused.
+
+          To fix:
+          1. Log in at https://wgmods.net
+          2. DevTools → Application → Cookies → https://wgmods.net
+          3. Copy `sessionid` and `csrftoken` into the repo secrets `WGMODS_SESSIONID` and `WGMODS_CSRFTOKEN`
+          4. Re-run the "Game patch update" workflow, then close this issue'
+          existing=$(gh issue list --state open --search "in:title \"$TITLE\"" --json number --jq '.[0].number')
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "Still failing: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          else
+            gh issue create --title "$TITLE" --body "$body"
+          fi
+
+      - name: Check for new game version
+        id: check
+        run: uv run scripts/wgmods.py check
+
+  build:
+    needs: check
+    if: needs.check.outputs.new == 'true'
+    runs-on: ubuntu-latest
+    container:
+      image: python:2.7.18-buster
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build wotmod
+        run: python build.py --username ANIALLATOR
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: wotmod
+          path: build/*.wotmod
+          if-no-files-found: error
+
+  release:
+    needs: [check, build]
+    runs-on: ubuntu-latest
+    env:
+      GAME_VERSION: ${{ needs.check.outputs.game_version }}
+      MOD_VERSION: ${{ needs.check.outputs.mod_version }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: wotmod
+          path: build
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: v${{ env.MOD_VERSION }}+wot${{ env.GAME_VERSION }}
+          name: v${{ env.MOD_VERSION }} for WoT ${{ env.GAME_VERSION }}
+          body: Compatible with World of Tanks ${{ env.GAME_VERSION }}. No code changes from v${{ env.MOD_VERSION }}.
+          files: build/ANIALLATOR.Hide_Decorative_Crosshairs_${{ env.MOD_VERSION }}.wotmod
+          make_latest: true
+
+      - uses: astral-sh/setup-uv@v10.4.0
+        with:
+          enable-cache: true
+
+      - run: uv sync --locked
+
+      - name: Submit update to wgmods
+        run: >
+          uv run scripts/wgmods.py publish
+          --wotmod "build/ANIALLATOR.Hide_Decorative_Crosshairs_${MOD_VERSION}.wotmod"
+          --game-version "$GAME_VERSION"
+          --changes "Compatible with WoT ${GAME_VERSION}"
+          --comment "Updating mod for latest patch"
