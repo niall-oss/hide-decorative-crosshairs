@@ -1,10 +1,8 @@
 # Hide Decorative Crosshairs
 
-A World of Tanks PC mod that hides the decorative overlays some vehicle mechanics draw around your own reticle, starting with the Leopard 120 Verbessert's Accuracy Stacks overlay. You keep the normal reticle; the mechanic itself, including its accuracy bonus, is unchanged.
+A World of Tanks PC mod that hides the decorative overlays some vehicle mechanics draw around your own reticle. You can keep the normal reticle; the mechanic itself, including its accuracy bonus, is unchanged.
 
 ## Overlays
-
-Nothing is hidden until you tick it. Example vehicles are from the 2.4.1.1 EU client.
 
 | Overlay | Mechanic | Example vehicles |
 |---|---|---|
@@ -14,8 +12,6 @@ Nothing is hidden until you tick it. Example vehicles are from the 2.4.1.1 EU cl
 | `temperatureGunOverheat` | Gun Overheat | None yet |
 | `overheat` | Overheat Stacks | Hirschkäfer |
 | `pillboxSiege` | Pillbox Siege Mode | Strv 107-12 |
-
-Mechanics whose HUD is drawn by Gameface are not affected.
 
 ## Normal gun marker on the Leopard 120 Verbessert
 
