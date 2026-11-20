@@ -17,6 +17,10 @@ Nothing is hidden until you tick it. Example vehicles are from the 2.4.1.1 EU cl
 
 Mechanics whose HUD is drawn by Gameface are not affected.
 
+## Normal gun marker on the Leopard 120 Verbessert
+
+The Leopard 120 Verbessert swaps the gun marker you picked in Settings for its own solid Accuracy Stacks marker. Tick **Use my normal gun marker** (or set `"defaultGunMarker": true`) to keep your usual marker on it. It's the only vehicle in the 2.4.1.1 EU client with this mechanic. Off by default.
+
 ## Installation
 
 1. Put the `.wotmod` in `World_of_Tanks/mods/<game_version>/`.
@@ -31,11 +35,12 @@ Without it, edit `World_of_Tanks/mods/<game_version>/configs/ANIALLATOR.hide_dec
 ```json
 {
   "enabled": true,
-  "hidden": ["accuracy"]
+  "hidden": ["accuracy"],
+  "defaultGunMarker": true
 }
 ```
 
-The default is `"hidden": []`.
+The defaults are `"hidden": []` and `"defaultGunMarker": false`.
 
 `hidden` takes any overlay name from the table above, or a newer one added in a later patch.
 

@@ -3,7 +3,7 @@ from debug_utils import LOG_NOTE
 from gui.hidedecorativecrosshairs import config
 
 MOD_LINKAGE = "hide_decorative_crosshairs"
-SETTINGS_VERSION = 2
+SETTINGS_VERSION = 3
 
 HINT_TOOLTIP = (
     "{HEADER}Decorative crosshairs{/HEADER}"
@@ -15,6 +15,15 @@ HINT_TOOLTIP = (
 CHECKBOX_TOOLTIP = (
     "{HEADER}%s{/HEADER}{BODY}%s Hiding it does not change how the "
     "mechanic works.{/BODY}"
+)
+
+GUN_MARKER_TOOLTIP = (
+    "{HEADER}Use my normal gun marker{/HEADER}"
+    "{BODY}The Leopard 120 Verbessert replaces the gun marker you picked in "
+    "Settings > Markers with its own solid Accuracy Stacks marker. Tick this "
+    "to keep your usual marker, e.g. a dashed circle, on that vehicle too. "
+    "The aiming circle still shrinks with each stack, so the accuracy bonus "
+    "is unchanged. Changes apply from your next battle.{/BODY}"
 )
 
 _api = None
@@ -49,7 +58,15 @@ def _build_template():
         "settingsVersion": SETTINGS_VERSION,
         "enabled": config.is_enabled(),
         "column1": column1,
-        "column2": [],
+        "column2": [
+            templates.createLabel("Gun marker:", tooltip=GUN_MARKER_TOOLTIP),
+            templates.createCheckbox(
+                "Use my normal gun marker",
+                "defaultGunMarker",
+                config.uses_default_gun_marker(),
+                tooltip=GUN_MARKER_TOOLTIP,
+            ),
+        ],
     }
 
 
@@ -62,7 +79,11 @@ def _apply_settings(settings):
             hidden.append(name)
 
     config.apply_values(
-        enabled=settings.get("enabled", config.is_enabled()), hidden=hidden
+        enabled=settings.get("enabled", config.is_enabled()),
+        hidden=hidden,
+        default_gun_marker=settings.get(
+            "defaultGunMarker", config.uses_default_gun_marker()
+        ),
     )
 
 

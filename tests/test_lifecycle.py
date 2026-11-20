@@ -49,7 +49,11 @@ def test_first_start_hides_nothing(game):
         "overheat",
         "pillboxSiege",
     ]
-    assert read_config() == {"enabled": True, "hidden": []}
+    assert read_config() == {
+        "enabled": True,
+        "hidden": [],
+        "defaultGunMarker": False,
+    }
     template = game.api.state["templates"][_linkage(game)]
     assert [c["value"] for c in template["column1"] if c["type"] == "CheckBox"] == [
         False
@@ -246,9 +250,123 @@ def test_reinit_does_not_stack_wrappers_or_listeners(game):
 
 def test_unsupported_client_does_not_register(game):
     del game.Panel._addMechanicUIComponents
+    del game.MarkersFactory._createAccuracyGunMarkers
 
     game.entry.init()
 
     assert "_addMechanicUIComponents" not in vars(game.Panel)
+    assert "_createAccuracyGunMarkers" not in vars(game.MarkersFactory)
     assert list(game.api.onSettingsChanged) == []
     assert any("not supported" in note for note in game.notes)
+
+
+def test_missing_panel_still_fixes_gun_marker(game):
+    del game.Panel._addMechanicUIComponents
+    write_config(default_gun_marker=True)
+
+    game.entry.init()
+
+    assert _markers(game, ACCURACY_STACKS) == DEFAULT_MARKERS
+    assert len(game.api.onSettingsChanged) == 1
+
+
+def _markers(game, *mechanics, factory=None):
+    return (factory or game.MarkersFactory)(mechanics).create()
+
+
+DEFAULT_MARKERS = (
+    ("arcadeGunMarker", "GunMarkerUI"),
+    ("sniperGunMarker", "GunMarkerUI"),
+)
+ACCURACY_MARKERS = (
+    ("arcadeAccuracyGunMarker", "AccuracyGunMarkerUI"),
+    ("sniperAccuracyGunMarker", "AccuracyGunMarkerUI"),
+)
+
+
+def test_accuracy_stacks_marker_kept_by_default(game):
+    game.entry.init()
+
+    assert _markers(game, ACCURACY_STACKS) == ACCURACY_MARKERS
+
+
+def test_default_gun_marker_replaces_accuracy_marker(game):
+    write_config(default_gun_marker=True)
+
+    game.entry.init()
+
+    assert _markers(game, ACCURACY_STACKS) == DEFAULT_MARKERS
+    assert _markers(game, ACCURACY_STACKS, factory=game.DevMarkersFactory) == (
+        DEFAULT_MARKERS
+    )
+
+
+def test_default_gun_marker_leaves_other_vehicles_alone(game):
+    write_config(default_gun_marker=True)
+
+    game.entry.init()
+
+    assert _markers(game, BATTLE_FURY) == DEFAULT_MARKERS
+
+
+def test_default_gun_marker_off_when_mod_disabled(game):
+    write_config(enabled=False, default_gun_marker=True)
+
+    game.entry.init()
+
+    assert _markers(game, ACCURACY_STACKS) == ACCURACY_MARKERS
+
+
+def test_settings_window_toggles_default_gun_marker(game):
+    game.entry.init()
+
+    _apply(game, defaultGunMarker=True)
+
+    assert _markers(game, ACCURACY_STACKS) == DEFAULT_MARKERS
+    assert read_config()["defaultGunMarker"] is True
+
+    _apply(game, defaultGunMarker=False)
+
+    assert _markers(game, ACCURACY_STACKS) == ACCURACY_MARKERS
+
+
+def test_gun_marker_checkbox_starts_unticked_with_tooltip(game):
+    (CONFIG_DIR / "config.json").unlink()
+
+    game.entry.init()
+
+    template = game.api.state["templates"][_linkage(game)]
+    (checkbox,) = [c for c in template["column2"] if c["type"] == "CheckBox"]
+    assert checkbox["varName"] == "defaultGunMarker"
+    assert checkbox["value"] is False
+    assert "Leopard 120 Verbessert" in checkbox["tooltip"]
+
+
+def test_fini_restores_gun_marker_factory(game):
+    write_config(default_gun_marker=True)
+    game.entry.init()
+    stale = game.MarkersFactory.__dict__["_createAccuracyGunMarkers"]
+
+    game.entry.fini()
+
+    assert (
+        game.MarkersFactory.__dict__["_createAccuracyGunMarkers"]
+        is game.original_accuracy_markers
+    )
+    assert stale(game.MarkersFactory((ACCURACY_STACKS,))) == ACCURACY_MARKERS
+    assert _markers(game, ACCURACY_STACKS) == ACCURACY_MARKERS
+
+
+def test_reinit_does_not_stack_gun_marker_wrapper(game):
+    game.entry.init()
+    first = game.MarkersFactory.__dict__["_createAccuracyGunMarkers"]
+    game.entry.init()
+
+    assert game.MarkersFactory.__dict__["_createAccuracyGunMarkers"] is first
+
+    game.entry.fini()
+
+    assert (
+        game.MarkersFactory.__dict__["_createAccuracyGunMarkers"]
+        is game.original_accuracy_markers
+    )

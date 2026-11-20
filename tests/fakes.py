@@ -88,6 +88,56 @@ def make_panel_classes():
     return DecorativeCrosshairPanel
 
 
+GUN_MARKER_LINKAGE = "GunMarkerUI"
+ACCURACY_GUN_MARKER_LINKAGE = "AccuracyGunMarkerUI"
+GUN_MARKER_LINKAGES = {
+    "arcadeGunMarker": GUN_MARKER_LINKAGE,
+    "sniperGunMarker": GUN_MARKER_LINKAGE,
+    "arcadeAccuracyGunMarker": ACCURACY_GUN_MARKER_LINKAGE,
+    "sniperAccuracyGunMarker": ACCURACY_GUN_MARKER_LINKAGE,
+}
+
+
+def make_gun_marker_factory_classes():
+    """Fresh copies of the gm_factory.py marker factories, shaped like 2.4.1_EU.
+
+    Markers are (name, linkage) pairs instead of Scaleform components.
+    """
+
+    class _ControlMarkersFactory:
+        def __init__(self, vehicleMechanics):
+            self.vehicleMechanics = vehicleMechanics
+
+        def create(self):
+            if ACCURACY_STACKS in self.vehicleMechanics:
+                return self._createAccuracyGunMarkers()
+            return self._createDefaultMarkers()
+
+        def _createAccuracyGunMarkers(self):
+            return (
+                self._createMarker("arcadeAccuracyGunMarker"),
+                self._createMarker("sniperAccuracyGunMarker"),
+            )
+
+        def _createDefaultMarkers(self):
+            return (
+                self._createMarker("arcadeGunMarker"),
+                self._createMarker("sniperGunMarker"),
+            )
+
+        def _createMarker(self, name):
+            return (name, GUN_MARKER_LINKAGES[name])
+
+    class _DevControlMarkersFactory(_ControlMarkersFactory):
+        def _useDebugMarkers(self):
+            return False
+
+        def _createAccuracyGunMarkers(self):
+            return super(_DevControlMarkersFactory, self)._createAccuracyGunMarkers()
+
+    return _ControlMarkersFactory, _DevControlMarkersFactory
+
+
 class FakeModsSettingsApi:
     """The parts of ModsSettings API 1.7.1 (api.py) the mod relies on."""
 

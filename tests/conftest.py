@@ -4,7 +4,12 @@ import types
 from pathlib import Path
 
 import pytest
-from fakes import FakeModsSettingsApi, make_panel_classes, make_templates_module
+from fakes import (
+    FakeModsSettingsApi,
+    make_gun_marker_factory_classes,
+    make_panel_classes,
+    make_templates_module,
+)
 
 CLIENT_SCRIPTS = Path(__file__).resolve().parents[1] / "res" / "scripts" / "client"
 MOD_PACKAGES = ("gui.hidedecorativecrosshairs", "gui.mods")
@@ -12,6 +17,9 @@ CONFIG_DIR = Path("mods/configs/ANIALLATOR.hide_decorative_crosshairs")
 PANEL_MODULE = (
     "gui.Scaleform.daapi.view.battle.shared.vehicle_mechanics.panels."
     "decorative_crosshairs_panel"
+)
+GUN_MARKER_FACTORY_MODULE = (
+    "gui.Scaleform.daapi.view.battle.shared.crosshair.gm_factory"
 )
 
 
@@ -29,10 +37,17 @@ def _install_game_modules(monkeypatch, game):
 
     gui = module("gui")
     gui.__path__ = [str(CLIENT_SCRIPTS / "gui")]
-    parts = PANEL_MODULE.split(".")
-    for depth in range(2, len(parts)):
-        module(".".join(parts[:depth]))
+    for name in (PANEL_MODULE, GUN_MARKER_FACTORY_MODULE):
+        parts = name.split(".")
+        for depth in range(2, len(parts)):
+            if ".".join(parts[:depth]) not in sys.modules:
+                module(".".join(parts[:depth]))
     module(PANEL_MODULE, DecorativeCrosshairPanel=game.Panel)
+    module(
+        GUN_MARKER_FACTORY_MODULE,
+        _ControlMarkersFactory=game.MarkersFactory,
+        _DevControlMarkersFactory=game.DevMarkersFactory,
+    )
 
     if game.api is not None:
         templates = make_templates_module()
@@ -54,10 +69,16 @@ def _import_mod_fresh():
     return entry, mods_settings
 
 
-def write_config(enabled=True, hidden=("accuracy",)):
+def write_config(enabled=True, hidden=("accuracy",), default_gun_marker=False):
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     (CONFIG_DIR / "config.json").write_text(
-        json.dumps({"enabled": enabled, "hidden": list(hidden)})
+        json.dumps(
+            {
+                "enabled": enabled,
+                "hidden": list(hidden),
+                "defaultGunMarker": default_gun_marker,
+            }
+        )
     )
 
 
@@ -69,9 +90,13 @@ def _make_game(monkeypatch, tmp_path, api):
     monkeypatch.chdir(tmp_path)
 
     Panel = make_panel_classes()
+    MarkersFactory, DevMarkersFactory = make_gun_marker_factory_classes()
     game = types.SimpleNamespace(
         Panel=Panel,
         original=Panel.__dict__["_addMechanicUIComponents"],
+        MarkersFactory=MarkersFactory,
+        DevMarkersFactory=DevMarkersFactory,
+        original_accuracy_markers=MarkersFactory.__dict__["_createAccuracyGunMarkers"],
         api=api,
         notes=[],
     )

@@ -50,10 +50,12 @@ KNOWN_COMPONENTS = (
 DEFAULTS = {
     "enabled": True,
     "hidden": [],
+    "defaultGunMarker": False,
 }
 
 _enabled = DEFAULTS["enabled"]
 _hidden = list(DEFAULTS["hidden"])
+_default_gun_marker = DEFAULTS["defaultGunMarker"]
 
 
 def _parse_hidden(value):
@@ -67,7 +69,7 @@ def _parse_hidden(value):
 
 
 def load():
-    global _enabled, _hidden
+    global _enabled, _hidden, _default_gun_marker
 
     if not os.path.isfile(CONFIG_FILE):
         save()
@@ -83,6 +85,9 @@ def load():
 
     _enabled = bool(data.get("enabled", DEFAULTS["enabled"]))
     _hidden = _parse_hidden(data.get("hidden", DEFAULTS["hidden"]))
+    _default_gun_marker = bool(
+        data.get("defaultGunMarker", DEFAULTS["defaultGunMarker"])
+    )
 
 
 def save():
@@ -90,7 +95,15 @@ def save():
         os.makedirs(CONFIG_DIR)
 
     with open(CONFIG_FILE, "w") as handle:
-        json.dump({"enabled": _enabled, "hidden": _hidden}, handle, indent=2)
+        json.dump(
+            {
+                "enabled": _enabled,
+                "hidden": _hidden,
+                "defaultGunMarker": _default_gun_marker,
+            },
+            handle,
+            indent=2,
+        )
 
 
 def is_enabled():
@@ -105,12 +118,18 @@ def is_hidden(name):
     return name in _hidden
 
 
-def apply_values(enabled=None, hidden=None):
-    global _enabled, _hidden
+def uses_default_gun_marker():
+    return _default_gun_marker
+
+
+def apply_values(enabled=None, hidden=None, default_gun_marker=None):
+    global _enabled, _hidden, _default_gun_marker
 
     if enabled is not None:
         _enabled = bool(enabled)
     if hidden is not None:
         _hidden = _parse_hidden(list(hidden))
+    if default_gun_marker is not None:
+        _default_gun_marker = bool(default_gun_marker)
 
     save()

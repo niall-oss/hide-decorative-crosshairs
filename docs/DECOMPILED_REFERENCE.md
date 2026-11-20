@@ -15,6 +15,8 @@ Game paths are under `source/res/scripts/client/gui/Scaleform/`; ModsSettings pa
 - **Component names**: `genConsts/DECORATIVE_CROSSHAIR_CONSTS.py`. These are the strings in `config.KNOWN_COMPONENTS` and in `config.json`.
 - **Caller**: `daapi/view/battle/shared/vehicle_mechanics/panels_common.py`. `VehicleMechanicsPanel.onTrackedMechanicsUpdate(mechanics)` skips mechanics where `arenaVisitor.extra.isGfHudMechanicEnabled(m)` is true (they are drawn by Gameface, not this panel), looks the rest up in the map and calls `_addMechanicUIComponents` once per mechanic. Overlays are added once per battle, so settings changes apply from the next battle.
 - **Flash bridge**: `daapi/view/meta/DecorativeCrosshairPanelMeta.py`. `as_addDecorCrosshairS(type)` calls `flashObject.as_addDecorCrosshair(type)`. The Flash side was not inspected.
+- **Gun marker**: `daapi/view/battle/shared/crosshair/gm_factory.py`. `_ControlMarkersFactory.create()` gives a vehicle with `VehicleMechanicKeys.ACCURACY_STACKS` the markers from `_createAccuracyGunMarkers()` (`arcadeAccuracyGunMarker`/`sniperAccuracyGunMarker`, linkage `AccuracyGunMarkerUI`) instead of `_createDefaultMarkers()` (`arcadeGunMarker`/`sniperGunMarker`, linkage `GunMarkerUI`). Both use the same data provider, so dispersion is drawn the same. `_DevControlMarkersFactory._createAccuracyGunMarkers` calls `super()` outside debug mode. The mod overrides `_ControlMarkersFactory._createAccuracyGunMarkers` to return `self._createDefaultMarkers()` when `defaultGunMarker` is on. `overrideComponents` goes through the same `create()`, so markers rebuilt mid-battle get the same choice.
+- **Accuracy stacks on the crosshair**: `daapi/view/battle/shared/crosshair/plugins.py` `AccuracyStacksPlugin` still calls `CrosshairPanelContainerMeta.as_setAccuracyStacksProgressS(level)`. With the default markers there is no accuracy marker for Flash to update; the Flash side was not inspected.
 - **Gameplay**: `AccuracyStacksController.py` and `cgf_components/accuracy_stacks_manager.py` do not touch the gun marker or this panel, so hiding the overlay does not change the stacks' dispersion bonus.
 
 ## ModsSettings API behaviour the mod relies on
@@ -26,6 +28,6 @@ Game paths are under `source/res/scripts/client/gui/Scaleform/`; ModsSettings pa
 ## Updating for a new patch
 
 1. Find the new branch: `git ls-remote --heads https://github.com/StranikS-Scan/WorldOfTanks-Decompiled.git`.
-2. Re-check the files above for a renamed `_addMechanicUIComponents`, new entries in `_VEHICLE_MECHANIC_UI_COMPONENTS_MAP` or new `DECORATIVE_CROSSHAIR_CONSTS` values. Add new names to `config.KNOWN_COMPONENTS`.
+2. Re-check the files above for a renamed `_addMechanicUIComponents` or `_createAccuracyGunMarkers`, new entries in `_VEHICLE_MECHANIC_UI_COMPONENTS_MAP` or new `DECORATIVE_CROSSHAIR_CONSTS` values. Add new names to `config.KNOWN_COMPONENTS`.
 3. Check the installed ModsSettings API version against the latest release and re-read `api.py` and `templates.py`.
 4. Update `tests/fakes.py` if any of this behaviour changed, then the pins in this file.

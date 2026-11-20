@@ -7,6 +7,7 @@ PANEL_MODULE = (
     "gui.Scaleform.daapi.view.battle.shared.vehicle_mechanics.panels."
     "decorative_crosshairs_panel"
 )
+GUN_MARKER_FACTORY_MODULE = "gui.Scaleform.daapi.view.battle.shared.crosshair.gm_factory"
 
 _overrides = []
 
@@ -15,43 +16,63 @@ def _is_installed():
     return bool(_overrides)
 
 
+def _is_active():
+    # Game objects that outlive uninstall() can still reach a wrapper they
+    # looked up earlier, so every wrapper checks this first.
+    return _is_installed() and config.is_enabled()
+
+
 def _patched_add_mechanic_ui_components(original, self, mechanicComponents):
-    # A panel that outlives uninstall() still holds this function as its class
-    # attribute until restore runs, so check before filtering.
-    if not _is_installed() or not config.is_enabled():
+    if not _is_active():
         return original(self, mechanicComponents)
     kept = tuple(name for name in mechanicComponents if not config.is_hidden(name))
     return original(self, kept)
 
 
-def _load_panel_class():
+def _patched_create_accuracy_gun_markers(original, self):
+    if not _is_active() or not config.uses_default_gun_marker():
+        return original(self)
+    return self._createDefaultMarkers()
+
+
+_TARGETS = (
+    (
+        PANEL_MODULE,
+        "DecorativeCrosshairPanel",
+        "_addMechanicUIComponents",
+        _patched_add_mechanic_ui_components,
+    ),
+    (
+        GUN_MARKER_FACTORY_MODULE,
+        "_ControlMarkersFactory",
+        "_createAccuracyGunMarkers",
+        _patched_create_accuracy_gun_markers,
+    ),
+)
+
+
+def _load_class(module_name, class_name):
     try:
-        module = __import__(PANEL_MODULE, fromlist=["DecorativeCrosshairPanel"])
+        module = __import__(module_name, fromlist=[class_name])
     except ImportError:
         return None
-    return getattr(module, "DecorativeCrosshairPanel", None)
+    return getattr(module, class_name, None)
 
 
 def install():
     if _is_installed():
         return True
 
-    panel_cls = _load_panel_class()
-    if panel_cls is None or "_addMechanicUIComponents" not in vars(panel_cls):
-        LOG_NOTE(
-            "Hide Decorative Crosshairs: DecorativeCrosshairPanel not found, "
-            "this client is not supported"
-        )
-        return False
-
-    _overrides.append(
-        override(
-            panel_cls,
-            "_addMechanicUIComponents",
-            _patched_add_mechanic_ui_components,
-        )
-    )
-    return True
+    for module_name, class_name, method_name, wrapper in _TARGETS:
+        cls = _load_class(module_name, class_name)
+        if cls is None or method_name not in vars(cls):
+            LOG_NOTE(
+                "Hide Decorative Crosshairs: %s.%s not found, this client is "
+                "not supported" % (class_name, method_name)
+            )
+            continue
+        _overrides.append(override(cls, method_name, wrapper))
+    return _is_installed()
 
 
 def uninstall():
