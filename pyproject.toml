@@ -1,0 +1,27 @@
+[project]
+name = "hdc-dev-tools"
+version = "0.1.0"
+requires-python = ">=3.15"
+dependencies = []
+
+[tool.uv]
+package = false
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+    "ruff>=0.17.5",
+    "ty>=0.0.107",
+]
+
+[tool.ty.src]
+include = ["tests"]
+
+[tool.ty.environment]
+extra-paths = ["tests", "res/scripts/client"]
+
+[tool.ruff]
+include = ["tests/**/*.py"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
